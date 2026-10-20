@@ -58,7 +58,7 @@ func (h *Handler) Register(w http.ResponseWriter, r *http.Request) {
 		serverError(w, "hash password", err)
 		return
 	}
-	id, err := h.users.CreateUser(r.Context(), c.Login, hash)
+	id, err := h.store.CreateUser(r.Context(), c.Login, hash)
 	if errors.Is(err, storage.ErrLoginTaken) {
 		w.WriteHeader(http.StatusConflict)
 		return
@@ -76,7 +76,7 @@ func (h *Handler) Login(w http.ResponseWriter, r *http.Request) {
 	if !ok {
 		return
 	}
-	u, err := h.users.GetUserByLogin(r.Context(), c.Login)
+	u, err := h.store.GetUserByLogin(r.Context(), c.Login)
 	if errors.Is(err, storage.ErrNotFound) {
 		auth.SpendCheck(c.Password)
 		w.WriteHeader(http.StatusUnauthorized)

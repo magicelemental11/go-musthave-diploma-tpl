@@ -17,15 +17,27 @@ type UserStore interface {
 	GetUserByLogin(ctx context.Context, login string) (storage.User, error)
 }
 
+// OrderStore is the order persistence used by the handlers.
+type OrderStore interface {
+	AddOrder(ctx context.Context, userID int64, number string) (bool, error)
+	ListOrders(ctx context.Context, userID int64) ([]storage.Order, error)
+}
+
+// Store is the persistence used by the handlers.
+type Store interface {
+	UserStore
+	OrderStore
+}
+
 // Handler holds the dependencies of the HTTP handlers.
 type Handler struct {
-	users  UserStore
+	store  Store
 	secret string
 }
 
 // New returns a Handler that signs sessions with secret.
-func New(users UserStore, secret string) *Handler {
-	return &Handler{users: users, secret: secret}
+func New(store Store, secret string) *Handler {
+	return &Handler{store: store, secret: secret}
 }
 
 // Router returns the API routes. Everything except registration and login
@@ -37,8 +49,8 @@ func (h *Handler) Router() http.Handler {
 
 	r.Group(func(r chi.Router) {
 		r.Use(middleware.RequireAuth(h.secret))
-		r.Post("/api/user/orders", notImplemented)
-		r.Get("/api/user/orders", notImplemented)
+		r.Post("/api/user/orders", h.UploadOrder)
+		r.Get("/api/user/orders", h.ListOrders)
 		r.Get("/api/user/balance", notImplemented)
 		r.Post("/api/user/balance/withdraw", notImplemented)
 		r.Get("/api/user/withdrawals", notImplemented)

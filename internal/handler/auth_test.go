@@ -13,12 +13,14 @@ import (
 )
 
 type fakeStore struct {
-	users map[string]storage.User
-	err   error
+	users  map[string]storage.User
+	owner  map[string]int64
+	orders []storage.Order
+	err    error
 }
 
 func newFakeStore() *fakeStore {
-	return &fakeStore{users: map[string]storage.User{}}
+	return &fakeStore{users: map[string]storage.User{}, owner: map[string]int64{}}
 }
 
 func (f *fakeStore) CreateUser(_ context.Context, login, hash string) (int64, error) {
