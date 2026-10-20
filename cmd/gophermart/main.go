@@ -1,3 +1,4 @@
+// Command gophermart runs the Gophermart loyalty system HTTP service.
 package main
 
 import (

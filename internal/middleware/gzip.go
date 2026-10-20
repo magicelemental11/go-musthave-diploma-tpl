@@ -27,11 +27,13 @@ func (w *gzipWriter) start() {
 	}
 }
 
+// WriteHeader decides on compression before sending the status line.
 func (w *gzipWriter) WriteHeader(code int) {
 	w.start()
 	w.ResponseWriter.WriteHeader(code)
 }
 
+// Write compresses the body once the response is known to be compressible.
 func (w *gzipWriter) Write(b []byte) (int, error) {
 	if !w.started {
 		if w.Header().Get("Content-Type") == "" {
