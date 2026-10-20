@@ -8,15 +8,22 @@ import (
 	"net/http"
 	"os"
 	"os/signal"
+	"sync"
 	"syscall"
 	"time"
 
 	_ "github.com/jackc/pgx/v5/stdlib"
 
+	"github.com/magicelemental11/go-musthave-diploma-tpl/internal/accrual"
 	"github.com/magicelemental11/go-musthave-diploma-tpl/internal/config"
 	"github.com/magicelemental11/go-musthave-diploma-tpl/internal/handler"
 	"github.com/magicelemental11/go-musthave-diploma-tpl/internal/middleware"
 	"github.com/magicelemental11/go-musthave-diploma-tpl/internal/storage"
+)
+
+const (
+	pollInterval = time.Second
+	pollWorkers  = 5
 )
 
 func main() {
@@ -50,7 +57,19 @@ func run(log *slog.Logger) error {
 		return err
 	}
 
-	h := handler.New(storage.New(db), cfg.SecretKey)
+	store := storage.New(db)
+	h := handler.New(store, cfg.SecretKey)
+
+	worker := accrual.NewWorker(accrual.NewClient(cfg.AccrualAddress), store, log, pollInterval, pollWorkers)
+	workerCtx, stopWorker := context.WithCancel(ctx)
+	var wg sync.WaitGroup
+	wg.Add(1)
+	go func() {
+		defer wg.Done()
+		worker.Run(workerCtx)
+	}()
+	defer wg.Wait()
+	defer stopWorker()
 
 	srv := &http.Server{
 		Addr:              cfg.RunAddress,
