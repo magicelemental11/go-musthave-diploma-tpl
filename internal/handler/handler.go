@@ -3,6 +3,7 @@ package handler
 
 import (
 	"context"
+	"encoding/json"
 	"net/http"
 
 	"github.com/go-chi/chi/v5"
@@ -23,10 +24,18 @@ type OrderStore interface {
 	ListOrders(ctx context.Context, userID int64) ([]storage.Order, error)
 }
 
+// BalanceStore is the balance and withdrawal persistence used by the handlers.
+type BalanceStore interface {
+	GetBalance(ctx context.Context, userID int64) (current, withdrawn int64, err error)
+	Withdraw(ctx context.Context, userID int64, order string, sum int64) error
+	ListWithdrawals(ctx context.Context, userID int64) ([]storage.Withdrawal, error)
+}
+
 // Store is the persistence used by the handlers.
 type Store interface {
 	UserStore
 	OrderStore
+	BalanceStore
 }
 
 // Handler holds the dependencies of the HTTP handlers.
@@ -51,13 +60,16 @@ func (h *Handler) Router() http.Handler {
 		r.Use(middleware.RequireAuth(h.secret))
 		r.Post("/api/user/orders", h.UploadOrder)
 		r.Get("/api/user/orders", h.ListOrders)
-		r.Get("/api/user/balance", notImplemented)
-		r.Post("/api/user/balance/withdraw", notImplemented)
-		r.Get("/api/user/withdrawals", notImplemented)
+		r.Get("/api/user/balance", h.Balance)
+		r.Post("/api/user/balance/withdraw", h.Withdraw)
+		r.Get("/api/user/withdrawals", h.Withdrawals)
 	})
 	return r
 }
 
-func notImplemented(w http.ResponseWriter, _ *http.Request) {
-	w.WriteHeader(http.StatusNotImplemented)
+func writeJSON(w http.ResponseWriter, v any) {
+	w.Header().Set("Content-Type", "application/json")
+	if err := json.NewEncoder(w).Encode(v); err != nil {
+		serverError(w, "encode response", err)
+	}
 }

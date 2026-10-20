@@ -16,7 +16,10 @@ type fakeStore struct {
 	users  map[string]storage.User
 	owner  map[string]int64
 	orders []storage.Order
-	err    error
+
+	balance, withdrawn int64
+	withdrawals        []storage.Withdrawal
+	err                error
 }
 
 func newFakeStore() *fakeStore {
@@ -81,7 +84,7 @@ func TestRegister(t *testing.T) {
 		t.Fatal("password stored in plain text")
 	}
 
-	if rec := do(h, http.MethodGet, "/api/user/balance", "", c); rec.Code != http.StatusNotImplemented {
+	if rec := do(h, http.MethodGet, "/api/user/balance", "", c); rec.Code != http.StatusOK {
 		t.Fatalf("authorized request status = %d", rec.Code)
 	}
 

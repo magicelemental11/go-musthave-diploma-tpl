@@ -1,7 +1,6 @@
 package handler
 
 import (
-	"encoding/json"
 	"errors"
 	"io"
 	"mime"
@@ -86,8 +85,5 @@ func (h *Handler) ListOrders(w http.ResponseWriter, r *http.Request) {
 	for i, o := range orders {
 		resp[i] = newOrderResponse(o)
 	}
-	w.Header().Set("Content-Type", "application/json")
-	if err := json.NewEncoder(w).Encode(resp); err != nil {
-		serverError(w, "encode orders", err)
-	}
+	writeJSON(w, resp)
 }
