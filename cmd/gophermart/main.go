@@ -42,6 +42,10 @@ func run(log *slog.Logger) error {
 		return err
 	}
 
+	if cfg.SecretKey == config.DefaultSecretKey {
+		log.Warn("SECRET_KEY is not set, using the built-in development key")
+	}
+
 	db, err := sql.Open("pgx", cfg.DatabaseURI)
 	if err != nil {
 		return err

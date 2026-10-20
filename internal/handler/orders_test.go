@@ -66,11 +66,12 @@ func TestUploadOrder(t *testing.T) {
 		{"json content type", "application/json", "12345678903", sessionFor(1), http.StatusBadRequest},
 		{"bad luhn", "text/plain", "12345678904", sessionFor(1), http.StatusUnprocessableEntity},
 		{"letters", "text/plain", "1234a678903", sessionFor(1), http.StatusUnprocessableEntity},
-		{"whitespace", "text/plain", " 12345678903\n", sessionFor(1), http.StatusUnprocessableEntity},
+		{"only whitespace", "text/plain", " \n", sessionFor(1), http.StatusBadRequest},
 		{"new", "text/plain", "12345678903", sessionFor(1), http.StatusAccepted},
 		{"charset parameter", "text/plain; charset=utf-8", "12345678903", sessionFor(1), http.StatusOK},
 		{"same user again", "text/plain", "12345678903", sessionFor(1), http.StatusOK},
 		{"another user", "text/plain", "12345678903", sessionFor(2), http.StatusConflict},
+		{"surrounding whitespace", "text/plain", " 12345678903\n", sessionFor(1), http.StatusOK},
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {

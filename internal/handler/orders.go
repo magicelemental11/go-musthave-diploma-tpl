@@ -5,6 +5,7 @@ import (
 	"io"
 	"mime"
 	"net/http"
+	"strings"
 	"time"
 
 	"github.com/magicelemental11/go-musthave-diploma-tpl/internal/luhn"
@@ -44,7 +45,7 @@ func (h *Handler) UploadOrder(w http.ResponseWriter, r *http.Request) {
 		w.WriteHeader(http.StatusBadRequest)
 		return
 	}
-	number := string(body)
+	number := strings.TrimSpace(string(body))
 	if number == "" {
 		w.WriteHeader(http.StatusBadRequest)
 		return

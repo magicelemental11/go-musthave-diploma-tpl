@@ -39,6 +39,7 @@ func (h *Handler) startSession(w http.ResponseWriter, userID int64) {
 		Value:    auth.Sign(h.secret, userID),
 		Path:     "/",
 		HttpOnly: true,
+		SameSite: http.SameSiteLaxMode,
 	})
 	w.WriteHeader(http.StatusOK)
 }
