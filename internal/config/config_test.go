@@ -15,7 +15,7 @@ func TestLoadFlags(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	want := Config{RunAddress: ":9000", DatabaseURI: "dsn", AccrualAddress: "http://acc", SecretKey: defaultSecretKey}
+	want := Config{RunAddress: ":9000", DatabaseURI: "dsn", AccrualAddress: "http://acc", SecretKey: DefaultSecretKey}
 	if cfg != want {
 		t.Fatalf("got %+v, want %+v", cfg, want)
 	}

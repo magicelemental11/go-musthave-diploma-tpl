@@ -7,10 +7,11 @@ import (
 	"os"
 )
 
-const (
-	defaultRunAddress = "localhost:8080"
-	defaultSecretKey  = "dev-secret-key"
-)
+// DefaultSecretKey is the session signing key used when SECRET_KEY is unset.
+// It is meant for development only.
+const DefaultSecretKey = "dev-secret-key"
+
+const defaultRunAddress = "localhost:8080"
 
 // Config holds the service settings.
 type Config struct {
@@ -30,7 +31,7 @@ func Load(args []string) (Config, error) {
 	fs.StringVar(&cfg.RunAddress, "a", defaultRunAddress, "service address")
 	fs.StringVar(&cfg.DatabaseURI, "d", "", "database URI")
 	fs.StringVar(&cfg.AccrualAddress, "r", "", "accrual system address")
-	cfg.SecretKey = defaultSecretKey
+	cfg.SecretKey = DefaultSecretKey
 	if err := fs.Parse(args); err != nil {
 		return Config{}, err
 	}

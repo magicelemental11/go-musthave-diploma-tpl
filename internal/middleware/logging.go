@@ -12,6 +12,7 @@ type statusWriter struct {
 	status int
 }
 
+// WriteHeader records the status code for logging.
 func (w *statusWriter) WriteHeader(code int) {
 	w.status = code
 	w.ResponseWriter.WriteHeader(code)

@@ -1,3 +1,4 @@
+// Command gophermart runs the Gophermart loyalty system HTTP service.
 package main
 
 import (
@@ -8,19 +9,27 @@ import (
 	"net/http"
 	"os"
 	"os/signal"
+	"sync"
 	"syscall"
 	"time"
 
-	"github.com/go-chi/chi/v5"
 	_ "github.com/jackc/pgx/v5/stdlib"
 
+	"github.com/magicelemental11/go-musthave-diploma-tpl/internal/accrual"
 	"github.com/magicelemental11/go-musthave-diploma-tpl/internal/config"
+	"github.com/magicelemental11/go-musthave-diploma-tpl/internal/handler"
 	"github.com/magicelemental11/go-musthave-diploma-tpl/internal/middleware"
 	"github.com/magicelemental11/go-musthave-diploma-tpl/internal/storage"
 )
 
+const (
+	pollInterval = time.Second
+	pollWorkers  = 5
+)
+
 func main() {
 	log := slog.New(slog.NewTextHandler(os.Stderr, nil))
+	slog.SetDefault(log)
 	if err := run(log); err != nil {
 		log.Error("fatal", "error", err)
 		os.Exit(1)
@@ -31,6 +40,10 @@ func run(log *slog.Logger) error {
 	cfg, err := config.Load(os.Args[1:])
 	if err != nil {
 		return err
+	}
+
+	if cfg.SecretKey == config.DefaultSecretKey {
+		log.Warn("SECRET_KEY is not set, using the built-in development key")
 	}
 
 	db, err := sql.Open("pgx", cfg.DatabaseURI)
@@ -49,11 +62,23 @@ func run(log *slog.Logger) error {
 		return err
 	}
 
-	r := chi.NewRouter()
+	store := storage.New(db)
+	h := handler.New(store, cfg.SecretKey)
+
+	worker := accrual.NewWorker(accrual.NewClient(cfg.AccrualAddress), store, log, pollInterval, pollWorkers)
+	workerCtx, stopWorker := context.WithCancel(ctx)
+	var wg sync.WaitGroup
+	wg.Add(1)
+	go func() {
+		defer wg.Done()
+		worker.Run(workerCtx)
+	}()
+	defer wg.Wait()
+	defer stopWorker()
 
 	srv := &http.Server{
 		Addr:              cfg.RunAddress,
-		Handler:           middleware.Logging(log)(middleware.Gzip(r)),
+		Handler:           middleware.Logging(log)(middleware.Gzip(h.Router())),
 		ReadHeaderTimeout: 5 * time.Second,
 		ReadTimeout:       15 * time.Second,
 		WriteTimeout:      15 * time.Second,
