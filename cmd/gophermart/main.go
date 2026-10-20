@@ -11,16 +11,17 @@ import (
 	"syscall"
 	"time"
 
-	"github.com/go-chi/chi/v5"
 	_ "github.com/jackc/pgx/v5/stdlib"
 
 	"github.com/magicelemental11/go-musthave-diploma-tpl/internal/config"
+	"github.com/magicelemental11/go-musthave-diploma-tpl/internal/handler"
 	"github.com/magicelemental11/go-musthave-diploma-tpl/internal/middleware"
 	"github.com/magicelemental11/go-musthave-diploma-tpl/internal/storage"
 )
 
 func main() {
 	log := slog.New(slog.NewTextHandler(os.Stderr, nil))
+	slog.SetDefault(log)
 	if err := run(log); err != nil {
 		log.Error("fatal", "error", err)
 		os.Exit(1)
@@ -49,11 +50,11 @@ func run(log *slog.Logger) error {
 		return err
 	}
 
-	r := chi.NewRouter()
+	h := handler.New(storage.New(db), cfg.SecretKey)
 
 	srv := &http.Server{
 		Addr:              cfg.RunAddress,
-		Handler:           middleware.Logging(log)(middleware.Gzip(r)),
+		Handler:           middleware.Logging(log)(middleware.Gzip(h.Router())),
 		ReadHeaderTimeout: 5 * time.Second,
 		ReadTimeout:       15 * time.Second,
 		WriteTimeout:      15 * time.Second,
