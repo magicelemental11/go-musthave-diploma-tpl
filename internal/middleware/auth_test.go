@@ -4,6 +4,7 @@ import (
 	"net/http"
 	"net/http/httptest"
 	"testing"
+	"time"
 
 	"github.com/magicelemental11/go-musthave-diploma-tpl/internal/auth"
 )
@@ -22,8 +23,8 @@ func TestRequireAuth(t *testing.T) {
 	}{
 		{"no cookie", nil, http.StatusUnauthorized},
 		{"garbage", &http.Cookie{Name: SessionCookie, Value: "garbage"}, http.StatusUnauthorized},
-		{"forged", &http.Cookie{Name: SessionCookie, Value: auth.Sign("other", 7)}, http.StatusUnauthorized},
-		{"valid", &http.Cookie{Name: SessionCookie, Value: auth.Sign("k", 7)}, http.StatusOK},
+		{"forged", &http.Cookie{Name: SessionCookie, Value: auth.Sign("other", 7, time.Now())}, http.StatusUnauthorized},
+		{"valid", &http.Cookie{Name: SessionCookie, Value: auth.Sign("k", 7, time.Now())}, http.StatusOK},
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {

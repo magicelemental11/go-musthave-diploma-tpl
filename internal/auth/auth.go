@@ -8,6 +8,7 @@ import (
 	"strconv"
 	"strings"
 	"sync"
+	"time"
 
 	"golang.org/x/crypto/bcrypt"
 )
@@ -40,23 +41,41 @@ func SpendCheck(password string) {
 	CheckPassword(dummyHash(), password)
 }
 
-// Sign returns a session value of the form "<userID>.<hex hmac-sha256>".
-func Sign(secret string, userID int64) string {
-	id := strconv.FormatInt(userID, 10)
-	return id + "." + mac(secret, id)
+// SessionTTL is how long a signed session value stays valid.
+const SessionTTL = 24 * time.Hour
+
+// Sign returns a session value of the form
+// "<userID>.<issued unix seconds>.<hex hmac-sha256>".
+func Sign(secret string, userID int64, issuedAt time.Time) string {
+	payload := strconv.FormatInt(userID, 10) + "." + strconv.FormatInt(issuedAt.Unix(), 10)
+	return payload + "." + mac(secret, payload)
 }
 
-// Parse validates a value produced by Sign and returns the user ID.
+// Parse validates a value produced by Sign and returns the user ID. Values
+// older than SessionTTL or issued in the future are rejected.
 func Parse(secret, value string) (int64, bool) {
-	id, sig, ok := strings.Cut(value, ".")
-	if !ok {
+	i := strings.LastIndexByte(value, '.')
+	if i < 0 {
 		return 0, false
 	}
-	if !hmac.Equal([]byte(sig), []byte(mac(secret, id))) {
+	payload, sig := value[:i], value[i+1:]
+	if !hmac.Equal([]byte(sig), []byte(mac(secret, payload))) {
+		return 0, false
+	}
+	id, issued, ok := strings.Cut(payload, ".")
+	if !ok {
 		return 0, false
 	}
 	userID, err := strconv.ParseInt(id, 10, 64)
 	if err != nil || userID <= 0 {
+		return 0, false
+	}
+	unix, err := strconv.ParseInt(issued, 10, 64)
+	if err != nil {
+		return 0, false
+	}
+	age := time.Since(time.Unix(unix, 0))
+	if age < 0 || age > SessionTTL {
 		return 0, false
 	}
 	return userID, true

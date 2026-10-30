@@ -5,6 +5,7 @@ import (
 	"errors"
 	"log/slog"
 	"net/http"
+	"time"
 
 	"github.com/magicelemental11/go-musthave-diploma-tpl/internal/auth"
 	"github.com/magicelemental11/go-musthave-diploma-tpl/internal/middleware"
@@ -36,8 +37,9 @@ func serverError(w http.ResponseWriter, msg string, err error) {
 func (h *Handler) startSession(w http.ResponseWriter, userID int64) {
 	http.SetCookie(w, &http.Cookie{
 		Name:     middleware.SessionCookie,
-		Value:    auth.Sign(h.secret, userID),
+		Value:    auth.Sign(h.secret, userID, time.Now()),
 		Path:     "/",
+		MaxAge:   int(auth.SessionTTL / time.Second),
 		HttpOnly: true,
 		SameSite: http.SameSiteLaxMode,
 	})

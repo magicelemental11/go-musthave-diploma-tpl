@@ -34,7 +34,7 @@ func (f *fakeStore) ListOrders(context.Context, int64) ([]storage.Order, error) 
 }
 
 func sessionFor(id int64) *http.Cookie {
-	return &http.Cookie{Name: middleware.SessionCookie, Value: auth.Sign("k", id)}
+	return &http.Cookie{Name: middleware.SessionCookie, Value: auth.Sign("k", id, time.Now())}
 }
 
 func upload(h http.Handler, contentType, body string, cookie *http.Cookie) *httptest.ResponseRecorder {

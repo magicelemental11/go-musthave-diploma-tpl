@@ -6,8 +6,6 @@ import (
 	"encoding/json"
 	"net/http"
 
-	"github.com/go-chi/chi/v5"
-
 	"github.com/magicelemental11/go-musthave-diploma-tpl/internal/middleware"
 	"github.com/magicelemental11/go-musthave-diploma-tpl/internal/storage"
 )
@@ -52,19 +50,16 @@ func New(store Store, secret string) *Handler {
 // Router returns the API routes. Everything except registration and login
 // requires a session.
 func (h *Handler) Router() http.Handler {
-	r := chi.NewRouter()
-	r.Post("/api/user/register", h.Register)
-	r.Post("/api/user/login", h.Login)
-
-	r.Group(func(r chi.Router) {
-		r.Use(middleware.RequireAuth(h.secret))
-		r.Post("/api/user/orders", h.UploadOrder)
-		r.Get("/api/user/orders", h.ListOrders)
-		r.Get("/api/user/balance", h.Balance)
-		r.Post("/api/user/balance/withdraw", h.Withdraw)
-		r.Get("/api/user/withdrawals", h.Withdrawals)
-	})
-	return r
+	auth := middleware.RequireAuth(h.secret)
+	mux := http.NewServeMux()
+	mux.HandleFunc("POST /api/user/register", h.Register)
+	mux.HandleFunc("POST /api/user/login", h.Login)
+	mux.Handle("POST /api/user/orders", auth(http.HandlerFunc(h.UploadOrder)))
+	mux.Handle("GET /api/user/orders", auth(http.HandlerFunc(h.ListOrders)))
+	mux.Handle("GET /api/user/balance", auth(http.HandlerFunc(h.Balance)))
+	mux.Handle("POST /api/user/balance/withdraw", auth(http.HandlerFunc(h.Withdraw)))
+	mux.Handle("GET /api/user/withdrawals", auth(http.HandlerFunc(h.Withdrawals)))
+	return mux
 }
 
 func writeJSON(w http.ResponseWriter, v any) {

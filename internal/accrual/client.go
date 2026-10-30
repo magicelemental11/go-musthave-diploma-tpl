@@ -39,15 +39,15 @@ type Result struct {
 
 // Client is an HTTP client of the accrual system.
 type Client struct {
-	baseURL string
-	http    *http.Client
+	baseURL    string
+	httpClient *http.Client
 }
 
 // NewClient returns a Client for the accrual system at baseURL.
 func NewClient(baseURL string) *Client {
 	return &Client{
-		baseURL: strings.TrimRight(baseURL, "/"),
-		http:    &http.Client{Timeout: 10 * time.Second},
+		baseURL:    strings.TrimRight(baseURL, "/"),
+		httpClient: &http.Client{Timeout: 10 * time.Second},
 	}
 }
 
@@ -59,7 +59,7 @@ func (c *Client) GetOrder(ctx context.Context, number string) (Result, error) {
 	if err != nil {
 		return Result{}, err
 	}
-	resp, err := c.http.Do(req)
+	resp, err := c.httpClient.Do(req)
 	if err != nil {
 		return Result{}, fmt.Errorf("request accrual system: %w", err)
 	}

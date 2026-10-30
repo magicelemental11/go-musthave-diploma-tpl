@@ -1,8 +1,10 @@
 package auth
 
 import (
+	"strconv"
 	"strings"
 	"testing"
+	"time"
 )
 
 func TestPassword(t *testing.T) {
@@ -25,23 +27,29 @@ func TestHashPasswordTooLong(t *testing.T) {
 }
 
 func TestSignParse(t *testing.T) {
-	id, ok := Parse("k", Sign("k", 42))
+	id, ok := Parse("k", Sign("k", 42, time.Now()))
 	if !ok || id != 42 {
 		t.Fatalf("got %d, %v", id, ok)
 	}
 }
 
 func TestParseRejects(t *testing.T) {
-	valid := Sign("k", 42)
+	now := time.Now()
+	valid := Sign("k", 42, now)
+	issued := strconv.FormatInt(now.Unix(), 10)
 	tests := map[string]string{
 		"empty":        "",
 		"no dot":       "42",
-		"wrong secret": Sign("other", 42),
+		"no issued":    "42." + mac("k", "42"),
+		"wrong secret": Sign("other", 42, now),
 		"swapped id":   "43" + valid[strings.Index(valid, "."):],
-		"bad sig":      "42.deadbeef",
-		"non numeric":  "x." + mac("k", "x"),
-		"zero id":      Sign("k", 0),
-		"negative id":  Sign("k", -1),
+		"bad sig":      "42." + issued + ".deadbeef",
+		"non numeric":  "x." + issued + "." + mac("k", "x."+issued),
+		"bad issued":   "42.x." + mac("k", "42.x"),
+		"zero id":      Sign("k", 0, now),
+		"negative id":  Sign("k", -1, now),
+		"expired":      Sign("k", 42, now.Add(-SessionTTL-time.Minute)),
+		"future":       Sign("k", 42, now.Add(time.Hour)),
 	}
 	for name, v := range tests {
 		t.Run(name, func(t *testing.T) {
